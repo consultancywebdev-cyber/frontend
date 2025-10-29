@@ -12,6 +12,9 @@ import { apiRequest } from "../../lib/queryClient";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 
+// ✅ Use API base from env so it works on Render/Netlify too
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // --- helpers ---
 const getId = (s) => s?.id ?? s?._id ?? null;
 const normalize = (s) => ({ ...s, id: getId(s) });
@@ -26,9 +29,9 @@ export default function Sliders() {
 
   // -------- READ: sliders (normalize id) --------
   const { data: sliders = [], isLoading, isError, error } = useQuery({
-    queryKey: ["/api/sliders"],
+    queryKey: [API_BASE, "/api/sliders"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/sliders");
+      const res = await apiRequest("GET", `${API_BASE}/api/sliders`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -37,11 +40,11 @@ export default function Sliders() {
   // -------- CREATE --------
   const createSlider = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/sliders", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/sliders`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sliders"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/sliders"] });
       setIsDialogOpen(false);
       setEditingSlider(null);
       toast({ title: "Success", description: "Slider created successfully" });
@@ -59,11 +62,11 @@ export default function Sliders() {
   const updateSlider = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing slider id");
-      const res = await apiRequest("PUT", `/api/sliders/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/sliders/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sliders"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/sliders"] });
       setEditingSlider(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "Slider updated successfully" });
@@ -81,12 +84,12 @@ export default function Sliders() {
   const deleteSlider = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing slider id");
-      const res = await apiRequest("DELETE", `/api/sliders/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/sliders/${id}`, {});
       // some APIs return no content on delete
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sliders"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/sliders"] });
       toast({ title: "Success", description: "Slider deleted successfully" });
     },
     onError: (err) => {

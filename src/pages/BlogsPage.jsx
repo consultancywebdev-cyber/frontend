@@ -7,9 +7,10 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Link } from "wouter";
 import { useState } from "react";
-
+const API_BASE = import.meta.env.VITE_API_URL || "";
 // ---- Helper: Fetch Wrapper ----
-async function fetchJSON(url) {
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -35,7 +36,7 @@ export default function BlogsPage() {
 
   // ✅ Proper JS Query (no <Blog[]>)
   const { data: blogs = [], isLoading } = useQuery({
-    queryKey: ["/api/blogs"],
+    queryKey: [API_BASE,"/api/blogs"],
     queryFn: () => fetchJSON("/api/blogs"),
   });
 

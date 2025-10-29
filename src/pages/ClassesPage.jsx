@@ -5,9 +5,10 @@ import { Calendar, Users, Search } from "lucide-react";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { useState } from "react";
-
+const API_BASE = import.meta.env.VITE_API_URL || "";
 // Helper: fetch wrapper
-async function fetchJSON(url) {
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -20,7 +21,7 @@ export default function ClassesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: classes = [], isLoading } = useQuery({
-    queryKey: ["/api/classes"],
+    queryKey: [API_BASE, "/api/classes"],
     queryFn: () => fetchJSON("/api/classes"),
   });
 

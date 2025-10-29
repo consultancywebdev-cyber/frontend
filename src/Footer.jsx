@@ -2,9 +2,10 @@ import { Link } from "wouter";
 import { Facebook, Instagram, Phone, Mail, MapPin, MessageCircle } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
-
+const API_BASE = import.meta.env.VITE_API_URL || "";
 // Helper: fetch settings data
-async function fetchJSON(url) {
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -15,7 +16,7 @@ async function fetchJSON(url) {
 
 export default function Footer() {
   const { data: settings } = useQuery({
-    queryKey: ["/api/settings"],
+    queryKey: [API_BASE,"/api/settings"],
     queryFn: () => fetchJSON("/api/settings"),
   });
 

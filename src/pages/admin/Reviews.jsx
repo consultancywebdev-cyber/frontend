@@ -12,6 +12,9 @@ import { apiRequest } from "../../lib/queryClient";
 import { Pencil, Trash2, Plus, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 
+// ✅ Prod-safe base (works locally too)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -33,9 +36,9 @@ export default function Reviews() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/reviews"],
+    queryKey: [API_BASE, "/api/reviews"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/reviews");
+      const res = await apiRequest("GET", `${API_BASE}/api/reviews`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -44,11 +47,11 @@ export default function Reviews() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/reviews", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/reviews`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reviews"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/reviews"] });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({ title: "Success", description: "Review created successfully" });
@@ -66,11 +69,11 @@ export default function Reviews() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing review id");
-      const res = await apiRequest("PUT", `/api/reviews/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/reviews/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reviews"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/reviews"] });
       setEditingItem(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "Review updated successfully" });
@@ -88,11 +91,11 @@ export default function Reviews() {
   const deleteItem = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing review id");
-      const res = await apiRequest("DELETE", `/api/reviews/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/reviews/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reviews"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/reviews"] });
       toast({ title: "Success", description: "Review deleted successfully" });
     },
     onError: (err) => {
@@ -344,7 +347,8 @@ export default function Reviews() {
                     variant="destructive"
                     size="sm"
                     onClick={() => {
-                      if (!id) {
+                      const idToDelete = getId(item);
+                      if (!idToDelete) {
                         toast({
                           title: "Missing ID",
                           description: "This review does not have an id field.",
@@ -352,7 +356,7 @@ export default function Reviews() {
                         });
                         return;
                       }
-                      deleteItem.mutate(id);
+                      deleteItem.mutate(idToDelete);
                     }}
                   >
                     <Trash2 className="w-4 h-4" />

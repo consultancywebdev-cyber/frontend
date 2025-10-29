@@ -11,6 +11,9 @@ import { apiRequest } from "../../lib/queryClient";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 
+// ✅ Use API base from env so it works on Render/Netlify too
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -22,9 +25,9 @@ export default function Settings() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/settings"],
+    queryKey: [API_BASE, "/api/settings"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/settings");
+      const res = await apiRequest("GET", `${API_BASE}/api/settings`);
       return res.json();
     },
   });
@@ -60,11 +63,11 @@ export default function Settings() {
   // ---- UPDATE MUTATION ----
   const updateSettings = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("PUT", "/api/settings", data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/settings`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/settings"] });
       toast({ title: "Success", description: "Settings updated successfully" });
     },
     onError: (err) => {

@@ -11,6 +11,8 @@ import { apiRequest } from "../../lib/queryClient";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -29,9 +31,9 @@ export default function Universities() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/universities"],
+    queryKey: [API_BASE, "/api/universities"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/universities");
+      const res = await apiRequest("GET", `${API_BASE}/api/universities`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -40,11 +42,11 @@ export default function Universities() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/universities", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/universities`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/universities"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/universities"] });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({ title: "Success", description: "University created successfully" });
@@ -62,11 +64,11 @@ export default function Universities() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing university id");
-      const res = await apiRequest("PUT", `/api/universities/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/universities/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/universities"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/universities"] });
       setEditingItem(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "University updated successfully" });
@@ -84,11 +86,11 @@ export default function Universities() {
   const deleteItem = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing university id");
-      const res = await apiRequest("DELETE", `/api/universities/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/universities/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/universities"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/universities"] });
       toast({ title: "Success", description: "University deleted successfully" });
     },
     onError: (err) => {

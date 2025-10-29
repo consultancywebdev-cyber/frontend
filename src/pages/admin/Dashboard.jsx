@@ -3,7 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "../../ui/card";
 import { GraduationCap, BookOpen, MapPin, Mail, Calendar, FileText } from "lucide-react";
 
-async function fetchJSON(url) {
+// ✅ Use API base from env so it works on Render/Netlify too
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -14,32 +18,32 @@ async function fetchJSON(url) {
 
 export default function Dashboard() {
   const { data: universities = [] } = useQuery({
-    queryKey: ["/api/universities"],
+    queryKey: [API_BASE, "/api/universities"],
     queryFn: () => fetchJSON("/api/universities"),
   });
 
   const { data: courses = [] } = useQuery({
-    queryKey: ["/api/courses"],
+    queryKey: [API_BASE, "/api/courses"],
     queryFn: () => fetchJSON("/api/courses"),
   });
 
   const { data: destinations = [] } = useQuery({
-    queryKey: ["/api/destinations"],
+    queryKey: [API_BASE, "/api/destinations"],
     queryFn: () => fetchJSON("/api/destinations"),
   });
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ["/api/appointments"],
+    queryKey: [API_BASE, "/api/appointments"],
     queryFn: () => fetchJSON("/api/appointments"),
   });
 
   const { data: blogs = [] } = useQuery({
-    queryKey: ["/api/blogs"],
+    queryKey: [API_BASE, "/api/blogs"],
     queryFn: () => fetchJSON("/api/blogs"),
   });
 
   const { data: classes = [] } = useQuery({
-    queryKey: ["/api/classes"],
+    queryKey: [API_BASE, "/api/classes"],
     queryFn: () => fetchJSON("/api/classes"),
   });
 

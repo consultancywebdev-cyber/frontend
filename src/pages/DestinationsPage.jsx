@@ -2,9 +2,10 @@ import  Navbar  from "../Navbar";
 import  Footer  from "../Footer";
 import { useQuery } from "@tanstack/react-query";
 import { GraduationCap } from "lucide-react";
-
+const API_BASE = import.meta.env.VITE_API_URL || "";
 // Helper: fetch wrapper
-async function fetchJSON(url) {
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -15,7 +16,7 @@ async function fetchJSON(url) {
 
 export default function DestinationsPage() {
   const { data: destinations = [], isLoading } = useQuery({
-    queryKey: ["/api/destinations"],
+    queryKey: [API_BASE, "/api/destinations"],
     queryFn: () => fetchJSON("/api/destinations"),
   });
 

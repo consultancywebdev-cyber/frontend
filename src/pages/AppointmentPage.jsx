@@ -21,6 +21,9 @@ import { useToast } from "../hooks/use-toast";
 import { Calendar, Clock, CheckCircle } from "lucide-react";
 import { useState } from "react";
 
+// === NEW: prod-safe API base (works locally and on Render) ===
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // keep it a string (schema requires string), but make it ISO (still a string)
 const toISOstringOrSame = (yyyyMMdd) => {
   if (!yyyyMMdd) return "";
@@ -58,7 +61,8 @@ export default function AppointmentPage() {
 
   const createAppointment = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/appointments", data);
+      // === CHANGED: prefix with API_BASE so it works after deploy ===
+      const res = await apiRequest("POST", `${API_BASE}/api/appointments`, data);
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
@@ -82,13 +86,13 @@ export default function AppointmentPage() {
 
   const onSubmit = (data) => {
     const payload = {
-      fullName: data.fullName.trim(),               // string
-      email: data.email.trim(),                     // string
-      phone: data.phone.trim(),                     // string (required by schema)
-      preferredDate: toISOstringOrSame(data.preferredDate), // string (ISO OK)
-      preferredTime: (data.preferredTime || "").trim(),     // string ("" allowed)
-      service: (data.service || "").trim(),                 // string ("" allowed)
-      message: (data.message || "").trim(),                 // string ("" allowed)
+      fullName: data.fullName.trim(),                        // string
+      email: data.email.trim(),                              // string
+      phone: data.phone.trim(),                              // string (required by schema)
+      preferredDate: toISOstringOrSame(data.preferredDate),  // string (ISO OK)
+      preferredTime: (data.preferredTime || "").trim(),      // string ("" allowed)
+      service: (data.service || "").trim(),                  // string ("" allowed)
+      message: (data.message || "").trim(),                  // string ("" allowed)
       // ⛔ NO status here — your schema doesn't include it
     };
 
@@ -100,9 +104,6 @@ export default function AppointmentPage() {
       });
       return;
     }
-
-    // Optional debug:
-    // console.log("Submitting payload:", payload);
 
     createAppointment.mutate(payload);
   };

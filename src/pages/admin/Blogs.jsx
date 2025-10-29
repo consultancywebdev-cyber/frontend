@@ -13,6 +13,9 @@ import { Pencil, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 import { format } from "date-fns";
 
+// ✅ Prod-safe base (works locally too)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -40,9 +43,9 @@ export default function Blogs() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/blogs"],
+    queryKey: [API_BASE, "/api/blogs"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/blogs");
+      const res = await apiRequest("GET", `${API_BASE}/api/blogs`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -51,11 +54,11 @@ export default function Blogs() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/blogs", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/blogs`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/blogs"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/blogs"] });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({ title: "Success", description: "Blog post created successfully" });
@@ -73,11 +76,11 @@ export default function Blogs() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing blog id");
-      const res = await apiRequest("PUT", `/api/blogs/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/blogs/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/blogs"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/blogs"] });
       setEditingItem(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "Blog post updated successfully" });
@@ -95,11 +98,11 @@ export default function Blogs() {
   const deleteItem = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing blog id");
-      const res = await apiRequest("DELETE", `/api/blogs/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/blogs/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/blogs"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/blogs"] });
       toast({ title: "Success", description: "Blog post deleted successfully" });
     },
     onError: (err) => {
@@ -147,7 +150,7 @@ export default function Blogs() {
       category: (fd.get("category") || "").toString(),
       author: (fd.get("author") || "").toString(),
       isPublished: !!isPublished,
-      publishedAt: isPublished ? new Date() : null,
+      publishedAt: isPublished ? new Date() : null, // will serialize to ISO
     };
 
     const id = getId(editingItem);

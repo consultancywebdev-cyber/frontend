@@ -7,6 +7,9 @@ import { Label } from "../../ui/label";
 import { useToast } from "../../hooks/use-toast";
 import { Lock } from "lucide-react";
 
+// ✅ Use API base from env so it works on Render/Netlify too
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -19,27 +22,41 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }) });
+        credentials: "include",                 // ✅ receive/set session cookie
+        body: JSON.stringify({ username, password }),
+      });
+
+      // Try to read server message (if any)
+      let serverMsg = "";
+      try {
+        const data = await response.clone().json();
+        serverMsg = data?.message || "";
+      } catch {
+        serverMsg = (await response.text()).slice(0, 200);
+      }
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Logged in successfully" });
+          description: serverMsg || "Logged in successfully",
+        });
         setLocation("/admin/dashboard");
       } else {
         toast({
           title: "Error",
-          description: "Invalid credentials",
-          variant: "destructive" });
+          description: serverMsg || "Invalid credentials",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to login",
-        variant: "destructive" });
+        description: "Failed to login. Please check your connection and try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +87,7 @@ export default function AdminLogin() {
               required
               className="mt-2"
               data-testid="input-username"
+              autoComplete="username"
             />
           </div>
 
@@ -84,6 +102,7 @@ export default function AdminLogin() {
               required
               className="mt-2"
               data-testid="input-password"
+              autoComplete="current-password"
             />
           </div>
 

@@ -11,6 +11,9 @@ import { apiRequest } from "../../lib/queryClient";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 
+// ✅ Prod-safe base (works locally too)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -29,9 +32,9 @@ export default function Courses() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/courses"],
+    queryKey: [API_BASE, "/api/courses"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/courses");
+      const res = await apiRequest("GET", `${API_BASE}/api/courses`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -40,11 +43,11 @@ export default function Courses() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/courses", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/courses`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/courses"] });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({ title: "Success", description: "Course created successfully" });
@@ -62,11 +65,11 @@ export default function Courses() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing course id");
-      const res = await apiRequest("PUT", `/api/courses/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/courses/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/courses"] });
       setEditingItem(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "Course updated successfully" });
@@ -84,11 +87,11 @@ export default function Courses() {
   const deleteItem = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing course id");
-      const res = await apiRequest("DELETE", `/api/courses/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/courses/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/courses"] });
       toast({ title: "Success", description: "Course deleted successfully" });
     },
     onError: (err) => {

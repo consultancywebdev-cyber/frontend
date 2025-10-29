@@ -5,9 +5,10 @@ import { ExternalLink, Globe, Search } from "lucide-react";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { useState } from "react";
-
+const API_BASE = import.meta.env.VITE_API_URL || "";
 // Helper: fetch wrapper
-async function fetchJSON(url) {
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -20,7 +21,7 @@ export default function UniversitiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: universities = [], isLoading } = useQuery({
-    queryKey: ["/api/universities"],
+    queryKey: [API_BASE, "/api/universities"],
     queryFn: () => fetchJSON("/api/universities"),
   });
 

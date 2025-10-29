@@ -16,6 +16,9 @@ import {
   SelectValue,
 } from "../../ui/select";
 
+// ✅ Prod-safe base (also works locally)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -37,9 +40,9 @@ export default function Appointments() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/appointments"],
+    queryKey: [API_BASE, "/api/appointments"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/appointments");
+      const res = await apiRequest("GET", `${API_BASE}/api/appointments`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -49,11 +52,11 @@ export default function Appointments() {
   const updateAppointment = useMutation({
     mutationFn: async ({ id, status }) => {
       if (!id) throw new Error("Missing appointment id");
-      const res = await apiRequest("PUT", `/api/appointments/${id}`, { status });
+      const res = await apiRequest("PUT", `${API_BASE}/api/appointments/${id}`, { status });
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/appointments"] });
       toast({ title: "Success", description: "Appointment updated successfully" });
     },
     onError: (err) => {
@@ -69,11 +72,11 @@ export default function Appointments() {
   const deleteAppointment = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing appointment id");
-      const res = await apiRequest("DELETE", `/api/appointments/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/appointments/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/appointments"] });
       toast({ title: "Success", description: "Appointment deleted successfully" });
     },
     onError: (err) => {

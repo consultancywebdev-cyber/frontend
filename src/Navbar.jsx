@@ -4,8 +4,15 @@ import { Menu, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { useQuery } from "@tanstack/react-query";
 
-// Helper: fetch settings from backend
-async function fetchJSON(url) {
+// ---- NEW: configure API base from env (prod uses Render URL)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// Helper: robust fetch with absolute URL + credentials
+async function fetchJSON(path) {
+  // Works with either absolute or relative path
+  const url = path.startsWith("http")
+    ? path
+    : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -19,13 +26,13 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Fetch site settings (logo, company name, etc.)
+  // Fetch site settings (logo, company name, etc.) — key includes API_BASE so cache splits per env
   const { data: settings } = useQuery({
-    queryKey: ["/api/settings"],
+    queryKey: [API_BASE, "/api/settings"],
     queryFn: () => fetchJSON("/api/settings"),
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
@@ -53,8 +60,8 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
-          <Link href="/home">
+          {/* Logo (FIXED: go to "/") */}
+          <Link href="/">
             <div
               className="flex items-center gap-3 hover-elevate active-elevate-2 rounded-md px-2 py-1 cursor-pointer"
               data-testid="link-home"
@@ -81,9 +88,7 @@ export default function Navbar() {
               <Link key={link.path} href={link.path}>
                 <span
                   className={`block px-4 py-2 rounded-md text-sm font-medium transition-colors hover-elevate active-elevate-2 cursor-pointer ${
-                    location === link.path
-                      ? "text-primary"
-                      : "text-foreground"
+                    location === link.path ? "text-primary" : "text-foreground"
                   }`}
                   data-testid={`link-${link.name.toLowerCase()}`}
                 >
@@ -114,11 +119,7 @@ export default function Navbar() {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             data-testid="button-mobile-menu"
           >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
         </div>
       </div>
@@ -144,10 +145,7 @@ export default function Navbar() {
             ))}
             <Link href="/appointment">
               <div onClick={() => setIsMobileMenuOpen(false)}>
-                <Button
-                  className="w-full mt-2"
-                  data-testid="button-mobile-appointment"
-                >
+                <Button className="w-full mt-2" data-testid="button-mobile-appointment">
                   Book a Visit
                 </Button>
               </div>

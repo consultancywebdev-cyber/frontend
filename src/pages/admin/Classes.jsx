@@ -11,6 +11,9 @@ import { apiRequest } from "../../lib/queryClient";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 
+// ✅ Prod-safe base (works locally too)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -29,9 +32,9 @@ export default function Classes() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/classes"],
+    queryKey: [API_BASE, "/api/classes"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/classes");
+      const res = await apiRequest("GET", `${API_BASE}/api/classes`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -40,11 +43,11 @@ export default function Classes() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/classes", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/classes`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/classes"] });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({ title: "Success", description: "Class created successfully" });
@@ -62,11 +65,11 @@ export default function Classes() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing class id");
-      const res = await apiRequest("PUT", `/api/classes/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/classes/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/classes"] });
       setEditingItem(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "Class updated successfully" });
@@ -84,11 +87,11 @@ export default function Classes() {
   const deleteItem = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing class id");
-      const res = await apiRequest("DELETE", `/api/classes/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/classes/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/classes"] });
       toast({ title: "Success", description: "Class deleted successfully" });
     },
     onError: (err) => {

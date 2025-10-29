@@ -4,7 +4,12 @@ import { Button } from "./ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
-async function fetchJSON(url) {
+// ✅ NEW: base API URL from environment (.env)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// ✅ UPDATED: fetchJSON now uses absolute API URL
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -16,14 +21,15 @@ async function fetchJSON(url) {
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // ✅ queryKey includes API_BASE to separate caches for dev/prod
   const { data: slides = [], isLoading } = useQuery({
-    queryKey: ["/api/sliders"],
+    queryKey: [API_BASE, "/api/sliders"],
     queryFn: () => fetchJSON("/api/sliders"),
   });
 
   const activeSlides = (slides || []).filter((slide) => slide && slide.isActive);
 
-  // Auto-advance
+  // Auto-advance slides
   useEffect(() => {
     if (activeSlides.length === 0) return;
     const timer = setInterval(() => {
@@ -34,26 +40,24 @@ export function HeroSlider() {
 
   const goToSlide = (index) => setCurrentSlide(index);
 
-  const goToPrevious = () => {
+  const goToPrevious = () =>
     setCurrentSlide((prev) =>
       activeSlides.length ? (prev === 0 ? activeSlides.length - 1 : prev - 1) : 0
     );
-  };
 
-  const goToNext = () => {
+  const goToNext = () =>
     setCurrentSlide((prev) =>
       activeSlides.length ? (prev + 1) % activeSlides.length : 0
     );
-  };
 
-  // Loading placeholder (prevents showing the “empty” hero while data is fetching)
+  // Loading skeleton
   if (isLoading) {
     return (
       <div className="relative min-h-[600px] lg:min-h-[700px] bg-gradient-to-br from-primary/20 via-background to-destructive/10 animate-pulse" />
     );
   }
 
-  // Fallback hero if there are no active slides
+  // No slides fallback
   if (activeSlides.length === 0) {
     return (
       <div className="relative min-h-[600px] lg:min-h-[700px] bg-gradient-to-br from-primary/20 via-background to-destructive/10 flex items-center justify-center">
@@ -93,7 +97,7 @@ export function HeroSlider() {
             }`}
             data-testid={`slide-${index}`}
           >
-            {/* Background Image with Dark Overlay */}
+            {/* Background */}
             <div className="absolute inset-0">
               {img ? (
                 <img src={img} alt={title || "Slide"} className="w-full h-full object-cover" />
@@ -103,7 +107,7 @@ export function HeroSlider() {
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
             </div>
 
-            {/* Content */}
+            {/* Text + Buttons */}
             <div className="relative h-full flex items-center">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="max-w-3xl">
@@ -154,7 +158,7 @@ export function HeroSlider() {
         );
       })}
 
-      {/* Navigation Arrows */}
+      {/* Arrows */}
       {activeSlides.length > 1 && (
         <>
           <button
@@ -176,7 +180,7 @@ export function HeroSlider() {
         </>
       )}
 
-      {/* Dots Navigation */}
+      {/* Dots */}
       {activeSlides.length > 1 && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
           {activeSlides.map((_, index) => (

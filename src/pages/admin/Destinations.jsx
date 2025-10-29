@@ -11,6 +11,9 @@ import { apiRequest } from "../../lib/queryClient";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 
+// ✅ Prod-safe base (also works locally)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
 const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
@@ -28,9 +31,9 @@ export default function Destinations() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["/api/destinations"],
+    queryKey: [API_BASE, "/api/destinations"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/destinations");
+      const res = await apiRequest("GET", `${API_BASE}/api/destinations`);
       const list = await res.json();
       return Array.isArray(list) ? list.map(normalize) : [];
     },
@@ -39,11 +42,11 @@ export default function Destinations() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", "/api/destinations", data);
+      const res = await apiRequest("POST", `${API_BASE}/api/destinations`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/destinations"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/destinations"] });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({ title: "Success", description: "Destination created successfully" });
@@ -61,11 +64,11 @@ export default function Destinations() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing destination id");
-      const res = await apiRequest("PUT", `/api/destinations/${id}`, data);
+      const res = await apiRequest("PUT", `${API_BASE}/api/destinations/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/destinations"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/destinations"] });
       setEditingItem(null);
       setIsDialogOpen(false);
       toast({ title: "Success", description: "Destination updated successfully" });
@@ -83,11 +86,11 @@ export default function Destinations() {
   const deleteItem = useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error("Missing destination id");
-      const res = await apiRequest("DELETE", `/api/destinations/${id}`, {});
+      const res = await apiRequest("DELETE", `${API_BASE}/api/destinations/${id}`, {});
       return res.json().catch(() => ({}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/destinations"] });
+      queryClient.invalidateQueries({ queryKey: [API_BASE, "/api/destinations"] });
       toast({ title: "Success", description: "Destination deleted successfully" });
     },
     onError: (err) => {
@@ -122,11 +125,8 @@ export default function Destinations() {
     }
 
     const id = getId(editingItem);
-    if (id) {
-      updateItem.mutate({ id, data });
-    } else {
-      createItem.mutate(data);
-    }
+    if (id) updateItem.mutate({ id, data });
+    else createItem.mutate(data);
   };
 
   if (isLoading) {
