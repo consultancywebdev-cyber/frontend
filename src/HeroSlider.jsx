@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
-// ✅ NEW: base API URL from environment (.env)
+// ✅ Base API URL from environment (.env)
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-// ✅ UPDATED: fetchJSON now uses absolute API URL
+// ✅ Fetch helper (absolute URL + credentials)
 async function fetchJSON(path) {
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
@@ -21,17 +21,29 @@ async function fetchJSON(path) {
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // ✅ queryKey includes API_BASE to separate caches for dev/prod
+  // ✅ Separate caches per API_BASE (dev/prod)
   const { data: slides = [], isLoading } = useQuery({
     queryKey: [API_BASE, "/api/sliders"],
     queryFn: () => fetchJSON("/api/sliders"),
+    staleTime: 60_000,
   });
 
-  const activeSlides = (slides || []).filter((slide) => slide && slide.isActive);
+  const activeSlides = useMemo(
+    () => (slides || []).filter((s) => s && s.isActive),
+    [slides]
+  );
 
-  // Auto-advance slides
+  // ✅ Keep index valid if slides change
   useEffect(() => {
     if (activeSlides.length === 0) return;
+    setCurrentSlide((prev) =>
+      prev >= activeSlides.length ? 0 : Math.max(0, prev)
+    );
+  }, [activeSlides.length]);
+
+  // ✅ Auto-advance
+  useEffect(() => {
+    if (activeSlides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % activeSlides.length);
     }, 5000);
@@ -39,25 +51,23 @@ export function HeroSlider() {
   }, [activeSlides.length]);
 
   const goToSlide = (index) => setCurrentSlide(index);
-
   const goToPrevious = () =>
     setCurrentSlide((prev) =>
       activeSlides.length ? (prev === 0 ? activeSlides.length - 1 : prev - 1) : 0
     );
-
   const goToNext = () =>
     setCurrentSlide((prev) =>
       activeSlides.length ? (prev + 1) % activeSlides.length : 0
     );
 
-  // Loading skeleton
+  // ⏳ Loading skeleton
   if (isLoading) {
     return (
       <div className="relative min-h-[600px] lg:min-h-[700px] bg-gradient-to-br from-primary/20 via-background to-destructive/10 animate-pulse" />
     );
   }
 
-  // No slides fallback
+  // 🚫 No slides fallback
   if (activeSlides.length === 0) {
     return (
       <div className="relative min-h-[600px] lg:min-h-[700px] bg-gradient-to-br from-primary/20 via-background to-destructive/10 flex items-center justify-center">
@@ -78,6 +88,7 @@ export function HeroSlider() {
     );
   }
 
+  // ✅ Slides UI (clickable buttons on top of image)
   return (
     <div className="relative min-h-[600px] lg:min-h-[700px] overflow-hidden bg-background mt-16 lg:mt-20">
       {/* Slides */}
@@ -97,18 +108,23 @@ export function HeroSlider() {
             }`}
             data-testid={`slide-${index}`}
           >
-            {/* Background */}
-            <div className="absolute inset-0">
+            {/* Background (click-through) */}
+            <div className="absolute inset-0 pointer-events-none">
               {img ? (
-                <img src={img} alt={title || "Slide"} className="w-full h-full object-cover" />
+                <img
+                  src={img}
+                  alt={title || "Slide"}
+                  className="w-full h-full object-cover select-none"
+                  draggable={false}
+                />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-destructive/10" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30 pointer-events-none" />
             </div>
 
-            {/* Text + Buttons */}
-            <div className="relative h-full flex items-center">
+            {/* Text + Buttons (on top) */}
+            <div className="relative z-10 h-full flex items-center pointer-events-auto">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="max-w-3xl">
                   {title && (
@@ -127,7 +143,7 @@ export function HeroSlider() {
                       {subtitle}
                     </p>
                   )}
-                  {(btnText && btnLink) && (
+                  {btnText && btnLink && (
                     <div className="flex flex-wrap gap-4 animate-in fade-in slide-in-from-left-8 duration-1000 delay-300">
                       <Link href={btnLink}>
                         <Button
@@ -163,7 +179,7 @@ export function HeroSlider() {
         <>
           <button
             onClick={goToPrevious}
-            className="absolute left-4 lg:left-8 top-[50%] -translate-y-1/2 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm text-white hover:bg-white/40 transition-all shadow-lg"
+            className="absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm text-white hover:bg-white/40 transition-all shadow-lg"
             aria-label="Previous slide"
             data-testid="button-slide-prev"
           >
@@ -171,7 +187,7 @@ export function HeroSlider() {
           </button>
           <button
             onClick={goToNext}
-            className="absolute right-4 lg:right-8 top-[50%] -translate-y-1/2 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm text-white hover:bg-white/40 transition-all shadow-lg"
+            className="absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm text-white hover:bg-white/40 transition-all shadow-lg"
             aria-label="Next slide"
             data-testid="button-slide-next"
           >
@@ -182,7 +198,7 @@ export function HeroSlider() {
 
       {/* Dots */}
       {activeSlides.length > 1 && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-2">
           {activeSlides.map((_, index) => (
             <button
               key={index}
