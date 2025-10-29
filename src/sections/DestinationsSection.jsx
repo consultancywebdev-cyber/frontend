@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { GraduationCap } from "lucide-react";
 
-async function fetchJSON(url) {
+// ✅ Base API URL from environment (.env)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// ✅ Helper: absolute URL + credentials + readable errors
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -12,11 +17,12 @@ async function fetchJSON(url) {
 
 export function DestinationsSection() {
   const { data: destinations = [], isLoading } = useQuery({
-    queryKey: ["/api/destinations"],
+    queryKey: [API_BASE, "/api/destinations"],
     queryFn: () => fetchJSON("/api/destinations"),
+    staleTime: 60_000,
   });
 
-  const activeDestinations = destinations
+  const activeDestinations = (destinations || [])
     .filter((dest) => dest && dest.isActive)
     .slice(0, 8);
 
@@ -51,12 +57,13 @@ export function DestinationsSection() {
 
         {/* Destinations Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {activeDestinations.map((destination) => {
+          {activeDestinations.map((destination, idx) => {
             const key =
               destination.id ||
               destination._id ||
               destination.slug ||
-              `${destination.name}-${destination.country}`;
+              `${destination.name ?? "destination"}-${idx}`;
+
             const imgSrc = destination.imageUrl || "";
             const name = destination.name || "Destination";
             const country = destination.country || "";
@@ -75,8 +82,10 @@ export function DestinationsSection() {
                 {imgSrc ? (
                   <img
                     src={imgSrc}
-                    alt={name}
+                    alt={`${name}${country ? `, ${country}` : ""}`}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    decoding="async"
                     data-testid={`img-destination-${key}`}
                   />
                 ) : (
@@ -98,8 +107,10 @@ export function DestinationsSection() {
                     <p className="text-sm text-white/90 mb-2">{country}</p>
                   )}
                   <div className="flex items-center gap-2 text-xs text-white/80">
-                    <GraduationCap className="w-4 h-4" />
-                    <span>{uniCount} {uniCount === 1 ? "University" : "Universities"}</span>
+                    <GraduationCap className="w-4 h-4" aria-hidden="true" />
+                    <span>
+                      {uniCount} {uniCount === 1 ? "University" : "Universities"}
+                    </span>
                   </div>
                 </div>
               </div>

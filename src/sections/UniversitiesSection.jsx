@@ -2,7 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Globe } from "lucide-react";
 import { Card } from "../ui/card";
 
-async function fetchJSON(url) {
+// ✅ Base API URL from environment (.env)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// ✅ Helper: absolute URL + credentials + readable errors
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -13,11 +18,12 @@ async function fetchJSON(url) {
 
 export function UniversitiesSection() {
   const { data: universities = [], isLoading } = useQuery({
-    queryKey: ["/api/universities"],
+    queryKey: [API_BASE, "/api/universities"],
     queryFn: () => fetchJSON("/api/universities"),
+    staleTime: 60_000,
   });
 
-  const activeUniversities = universities
+  const activeUniversities = (universities || [])
     .filter((uni) => uni && uni.isActive)
     .slice(0, 6);
 
@@ -56,13 +62,13 @@ export function UniversitiesSection() {
 
         {/* Universities Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {activeUniversities.map((university) => {
+          {activeUniversities.map((university, idx) => {
             const key =
               university.id ||
               university._id ||
               university.slug ||
               university.name ||
-              Math.random().toString(36).slice(2);
+              `university-${idx}`;
 
             const logoUrl = university.logoUrl || "";
             const name = university.name || "University";
@@ -82,12 +88,14 @@ export function UniversitiesSection() {
                       src={logoUrl}
                       alt={name}
                       className="max-h-full max-w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
                       data-testid={`img-university-logo-${key}`}
                     />
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-20 mb-4 bg-primary/5 rounded-md">
-                    <Globe className="w-10 h-10 text-primary" />
+                    <Globe className="w-10 h-10 text-primary" aria-hidden="true" />
                   </div>
                 )}
 
@@ -98,9 +106,12 @@ export function UniversitiesSection() {
                 >
                   {name}
                 </h3>
+
                 {country ? (
                   <p className="text-sm text-muted-foreground mb-4 flex items-center gap-2">
-                    <span className="text-xl">{getCountryFlag(country)}</span>
+                    <span className="text-xl" aria-hidden="true">
+                      {getCountryFlag(country)}
+                    </span>
                     {country}
                   </p>
                 ) : null}
@@ -121,7 +132,7 @@ export function UniversitiesSection() {
                     data-testid={`link-university-website-${key}`}
                   >
                     Visit Website
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-4 h-4" aria-hidden="true" />
                   </a>
                 )}
               </Card>
@@ -133,20 +144,33 @@ export function UniversitiesSection() {
   );
 }
 
-function getCountryFlag(country) {
+// 🔤 Case-insensitive country name → flag emoji
+function getCountryFlag(countryRaw) {
+  const country = String(countryRaw).trim().toLowerCase();
   const flags = {
-    "United States": "🇺🇸",
-    "United Kingdom": "🇬🇧",
-    Canada: "🇨🇦",
-    Australia: "🇦🇺",
-    Germany: "🇩🇪",
-    France: "🇫🇷",
-    Netherlands: "🇳🇱",
-    Switzerland: "🇨🇭",
-    Singapore: "🇸🇬",
-    Japan: "🇯🇵",
-    "South Korea": "🇰🇷",
-    "New Zealand": "🇳🇿",
+    "united states": "🇺🇸",
+    "united kingdom": "🇬🇧",
+    canada: "🇨🇦",
+    australia: "🇦🇺",
+    germany: "🇩🇪",
+    france: "🇫🇷",
+    netherlands: "🇳🇱",
+    switzerland: "🇨🇭",
+    singapore: "🇸🇬",
+    japan: "🇯🇵",
+    "south korea": "🇰🇷",
+    "new zealand": "🇳🇿",
+    india: "🇮🇳",
+    china: "🇨🇳",
+    italy: "🇮🇹",
+    spain: "🇪🇸",
+    ireland: "🇮🇪",
+    sweden: "🇸🇪",
+    norway: "🇳🇴",
+    finland: "🇫🇮",
+    denmark: "🇩🇰",
+    "united arab emirates": "🇦🇪",
+    malaysia: "🇲🇾",
   };
   return flags[country] || "🌍";
 }

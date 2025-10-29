@@ -5,6 +5,9 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Link } from "wouter";
 
+// ✅ Base API URL from environment (.env)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // small helper to safely format dates without date-fns
 function formatDate(value) {
   const d = value ? new Date(value) : null;
@@ -16,20 +19,25 @@ function formatDate(value) {
   }).format(d); // e.g., "Oct 29, 2025"
 }
 
+// ✅ helper to fetch JSON with absolute URL + credentials
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 export function BlogsSection() {
   const { data: blogs = [], isLoading } = useQuery({
-    queryKey: ["/api/blogs"],
-    queryFn: async () => {
-      const res = await fetch("/api/blogs", { credentials: "include" });
-      if (!res.ok) {
-        const text = (await res.text()) || res.statusText;
-        throw new Error(`${res.status}: ${text}`);
-      }
-      return res.json();
-    },
+    queryKey: [API_BASE, "/api/blogs"],
+    queryFn: () => fetchJSON("/api/blogs"),
+    staleTime: 60_000,
   });
 
-  const publishedBlogs = blogs
+  const publishedBlogs = (blogs || [])
     .filter((blog) => blog && blog.isPublished)
     .sort((a, b) => {
       const dateA = a?.publishedAt ? new Date(a.publishedAt).getTime() : 0;
@@ -76,8 +84,12 @@ export function BlogsSection() {
 
         {/* Blogs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {publishedBlogs.map((blog) => {
-            const key = blog.id || blog._id || blog.slug || String(blog.title ?? Math.random());
+          {publishedBlogs.map((blog, idx) => {
+            const key =
+              blog.id ||
+              blog._id ||
+              blog.slug ||
+              `${blog.title ?? "blog"}-${idx}`;
             const displayDate = formatDate(blog.publishedAt);
 
             return (
@@ -93,6 +105,8 @@ export function BlogsSection() {
                       src={blog.imageUrl}
                       alt={blog.title || "Blog image"}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
                       data-testid={`img-blog-${key}`}
                     />
                   </div>
@@ -112,7 +126,7 @@ export function BlogsSection() {
 
                     {displayDate && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
+                        <Calendar className="w-3 h-3" aria-hidden="true" />
                         <span>{displayDate}</span>
                       </div>
                     )}
@@ -137,7 +151,7 @@ export function BlogsSection() {
                   <div className="flex items-center justify-between pt-4 border-t mt-auto">
                     {blog.author && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <User className="w-3 h-3" />
+                        <User className="w-3 h-3" aria-hidden="true" />
                         <span>{blog.author}</span>
                       </div>
                     )}
@@ -148,7 +162,7 @@ export function BlogsSection() {
                       data-testid={`link-read-more-${key}`}
                     >
                       Read More
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
                     </Link>
                   </div>
                 </div>
@@ -157,13 +171,17 @@ export function BlogsSection() {
           })}
         </div>
 
-        {/* View All CTA */}
+        {/* View All CTA (valid HTML: Button renders <a> via asChild) */}
         <div className="text-center mt-12">
-          <Link href="/blogs">
-            <Button size="lg" variant="outline" className="font-medium" data-testid="button-view-all-blogs">
-              View All Articles
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            variant="outline"
+            className="font-medium"
+            data-testid="button-view-all-blogs"
+            asChild
+          >
+            <Link href="/blogs">View All Articles</Link>
+          </Button>
         </div>
       </div>
     </section>

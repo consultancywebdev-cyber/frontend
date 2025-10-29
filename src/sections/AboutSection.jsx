@@ -1,4 +1,4 @@
-import { Check, Award, Users, Globe } from "lucide-react";
+import { Award, Users, Globe } from "lucide-react";
 import { Button } from "../ui/button";
 import { Link } from "wouter";
 
@@ -17,9 +17,11 @@ export function AboutSection() {
           <div className="order-2 lg:order-1">
             <div className="relative rounded-md overflow-hidden">
               <img
-                src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop"
-                alt="Students studying together"
+                src="https://studentconnect.org/uploads/media/1160x1160/03/813-STUDY%20ABROAD%20copy.png?v=1-0"
+                alt="Students collaborating while planning their study abroad journey"
                 className="w-full h-[400px] lg:h-[500px] object-cover"
+                loading="lazy"
+                decoding="async"
                 data-testid="img-about"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -40,22 +42,20 @@ export function AboutSection() {
 
             {/* Highlights */}
             <div className="space-y-4 mb-8">
-              {highlights.map((highlight, index) => (
+              {highlights.map(({ icon: Icon, text }, index) => (
                 <div key={index} className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <highlight.icon className="w-5 h-5 text-primary" />
+                    <Icon className="w-5 h-5 text-primary" aria-hidden="true" />
                   </div>
-                  <p className="text-base text-foreground pt-2">{highlight.text}</p>
+                  <p className="text-base text-foreground pt-2">{text}</p>
                 </div>
               ))}
             </div>
 
-            {/* CTA */}
-            <Link href="/about">
-              <Button size="lg" className="font-medium" data-testid="button-learn-more">
-                Learn More About Us
-              </Button>
-            </Link>
+            {/* CTA (valid HTML: Button renders <a> via asChild) */}
+            <Button size="lg" className="font-medium" data-testid="button-learn-more" asChild>
+              <Link href="/about">Learn More About Us</Link>
+            </Button>
           </div>
         </div>
       </div>

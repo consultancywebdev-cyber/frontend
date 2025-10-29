@@ -5,7 +5,12 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Link } from "wouter";
 
-async function fetchJSON(url) {
+// ✅ Base API URL from environment (.env)
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// ✅ Helper: absolute URL + credentials + error text
+async function fetchJSON(path) {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -16,11 +21,12 @@ async function fetchJSON(url) {
 
 export function CoursesSection() {
   const { data: courses = [], isLoading } = useQuery({
-    queryKey: ["/api/courses"],
+    queryKey: [API_BASE, "/api/courses"],
     queryFn: () => fetchJSON("/api/courses"),
+    staleTime: 60_000,
   });
 
-  const activeCourses = courses
+  const activeCourses = (courses || [])
     .filter((course) => course && course.isActive)
     .slice(0, 6);
 
@@ -59,8 +65,9 @@ export function CoursesSection() {
 
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {activeCourses.map((course) => {
-            const key = course.id || course._id || course.slug || course.name;
+          {activeCourses.map((course, idx) => {
+            const key = course.id || course._id || course.slug || `${course.name ?? "course"}-${idx}`;
+
             return (
               <Card
                 key={key}
@@ -74,12 +81,14 @@ export function CoursesSection() {
                       src={course.imageUrl}
                       alt={course.name || "Course image"}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
                       data-testid={`img-course-${key}`}
                     />
                   </div>
                 ) : (
                   <div className="h-48 bg-gradient-to-br from-primary/20 to-destructive/10 flex items-center justify-center">
-                    <BookOpen className="w-16 h-16 text-primary" />
+                    <BookOpen className="w-16 h-16 text-primary" aria-hidden="true" />
                   </div>
                 )}
 
@@ -98,7 +107,7 @@ export function CoursesSection() {
 
                     {course.duration ? (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3 h-3" aria-hidden="true" />
                         <span>{course.duration}</span>
                       </div>
                     ) : null}
@@ -117,29 +126,33 @@ export function CoursesSection() {
                     </p>
                   )}
 
-                  <Link href="/courses">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      data-testid={`button-explore-course-${key}`}
-                    >
-                      Explore Course
-                    </Button>
-                  </Link>
+                  {/* Valid HTML: render anchor via Button asChild */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    data-testid={`button-explore-course-${key}`}
+                    asChild
+                  >
+                    <Link href="/courses">Explore Course</Link>
+                  </Button>
                 </div>
               </Card>
             );
           })}
         </div>
 
-        {/* View All CTA */}
+        {/* View All CTA (valid HTML with asChild) */}
         <div className="text-center mt-12">
-          <Link href="/courses">
-            <Button size="lg" variant="outline" className="font-medium" data-testid="button-view-all-courses">
-              View All Courses
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            variant="outline"
+            className="font-medium"
+            data-testid="button-view-all-courses"
+            asChild
+          >
+            <Link href="/courses">View All Courses</Link>
+          </Button>
         </div>
       </div>
     </section>
