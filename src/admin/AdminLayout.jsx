@@ -88,7 +88,8 @@ export function AdminLayout({ children }) {
             {/* Logo/Brand */}
             <div className="px-4 py-6 border-b">
               <h2 className="text-lg font-bold text-foreground">Admin Panel</h2>
-              <p className="text-xs text-muted-foreground mt-1">Everest Consultancy</p>
+              <h4 className="text-xs text-muted-foreground mt-1">Everest Worldwide Consultancy</h4>
+              <p className="text-xs text-muted-foreground mt-1">Developer-Santosh Thapa</p>
             </div>
 
             {/* Menu */}
