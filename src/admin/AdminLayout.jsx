@@ -19,7 +19,8 @@ import {
   FileText,
   Star,
   Mail,
-  LogOut
+  LogOut,
+  Users
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "../ui/button";
@@ -63,6 +64,7 @@ export function AdminLayout({ children }) {
         { title: "Destinations", url: "/admin/destinations", icon: MapPin },
         { title: "Classes", url: "/admin/classes", icon: Calendar },
         { title: "Blogs", url: "/admin/blogs", icon: FileText },
+        { title: "Teams", url: "/admin/team", icon: Users },
         { title: "Reviews", url: "/admin/reviews", icon: Star },
       ],
     },

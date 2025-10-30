@@ -24,6 +24,7 @@ import Classes from './pages/admin/Classes';
 import Blogs from './pages/admin/Blogs';
 import Reviews from './pages/admin/Reviews';
 import Appointments from './pages/admin/Appointments';
+import Team from './pages/admin/Team';
 
 import NotFound from './pages/not-found';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -88,6 +89,7 @@ function Router() {
       <Route path="/admin/blogs" component={BlogsAdminPage} />
       <Route path="/admin/reviews" component={ReviewsAdminPage} />
       <Route path="/admin/appointments" component={AppointmentsAdminPage} />
+      <Route path="/admin/team" component={Team} />
 
       <Route component={NotFound} />
     </Switch>
