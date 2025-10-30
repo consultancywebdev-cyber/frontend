@@ -1,13 +1,22 @@
-import  Navbar  from "../Navbar";
-import  Footer  from "../Footer";
+// src/pages/BlogsPage.jsx
+import Navbar from "../Navbar";
+import Footer from "../Footer";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, User, ArrowRight, Search } from "lucide-react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import { Link } from "wouter";
-import { useState } from "react";
+import { Button } from "../ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { useState, useMemo } from "react";
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // ---- Helper: Fetch Wrapper ----
 async function fetchJSON(path) {
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
@@ -34,30 +43,45 @@ function formatDate(value) {
 export default function BlogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ✅ Proper JS Query (no <Blog[]>)
+  // Preview overlay state
+  const [previewItem, setPreviewItem] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const { data: blogs = [], isLoading } = useQuery({
-    queryKey: [API_BASE,"/api/blogs"],
+    queryKey: [API_BASE, "/api/blogs"],
     queryFn: () => fetchJSON("/api/blogs"),
   });
 
   // ---- Data Processing ----
-  const publishedBlogs = blogs
-    .filter((blog) => blog && blog.isPublished)
-    .sort((a, b) => {
-      const dateA = a?.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-      const dateB = b?.publishedAt ? new Date(b.publishedAt).getTime() : 0;
-      return dateB - dateA;
-    });
+  const publishedBlogs = useMemo(
+    () =>
+      (blogs || [])
+        .filter((blog) => blog && blog.isPublished)
+        .sort((a, b) => {
+          const dateA = a?.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+          const dateB = b?.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+          return dateB - dateA;
+        }),
+    [blogs]
+  );
 
   const q = (searchQuery || "").toLowerCase();
-  const filteredBlogs = publishedBlogs.filter((blog) => {
-    const title = (blog.title || "").toLowerCase();
-    const excerpt = (blog.excerpt || "").toLowerCase();
-    const category = (blog.category || "").toLowerCase();
-    return title.includes(q) || excerpt.includes(q) || category.includes(q);
-  });
+  const filteredBlogs = useMemo(
+    () =>
+      publishedBlogs.filter((blog) => {
+        const title = (blog.title || "").toLowerCase();
+        const excerpt = (blog.excerpt || "").toLowerCase();
+        const category = (blog.category || "").toLowerCase();
+        return title.includes(q) || excerpt.includes(q) || category.includes(q);
+      }),
+    [publishedBlogs, q]
+  );
 
-  // ---- UI ----
+  const openPreview = (item) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -93,7 +117,7 @@ export default function BlogsPage() {
         <section className="py-16 lg:py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {isLoading ? (
-              // ---- Loading Skeleton ----
+              // Loading Skeleton
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Card key={i} className="overflow-hidden animate-pulse">
@@ -107,7 +131,7 @@ export default function BlogsPage() {
                 ))}
               </div>
             ) : filteredBlogs.length === 0 ? (
-              // ---- No Results ----
+              // No Results
               <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground">
                   {searchQuery
@@ -116,7 +140,7 @@ export default function BlogsPage() {
                 </p>
               </div>
             ) : (
-              // ---- Blogs List ----
+              // Blogs List
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {filteredBlogs.map((blog) => {
                   const key = blog.id || blog._id || blog.slug || blog.title;
@@ -170,7 +194,7 @@ export default function BlogsPage() {
                           </p>
                         )}
 
-                        {/* Author + Read More */}
+                        {/* Author + Read More (Overlay) */}
                         <div className="flex items-center justify-between pt-4 border-t mt-auto">
                           {blog.author && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -178,13 +202,15 @@ export default function BlogsPage() {
                               <span>{blog.author}</span>
                             </div>
                           )}
-                          <Link
-                            href={`/blogs/${blog.slug || key}`}
-                            className="text-sm text-primary hover:underline flex items-center gap-1"
+
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto text-sm text-primary flex items-center gap-1"
+                            onClick={() => openPreview(blog)} // open overlay instead of routing
                           >
                             Read More
                             <ArrowRight className="w-4 h-4" />
-                          </Link>
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -195,6 +221,54 @@ export default function BlogsPage() {
           </div>
         </section>
       </main>
+
+      {/* Preview Overlay */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewItem?.title || "Blog"}</DialogTitle>
+          </DialogHeader>
+
+          {previewItem?.imageUrl && (
+            <img
+              src={previewItem.imageUrl}
+              alt={previewItem.title}
+              className="w-full h-60 object-cover rounded-md mb-4"
+            />
+          )}
+
+          <div className="text-sm text-muted-foreground mb-4 flex items-center gap-4">
+            {previewItem?.author && (
+              <span className="flex items-center gap-1">
+                <User className="w-3 h-3" />
+                {previewItem.author}
+              </span>
+            )}
+            {previewItem?.publishedAt && (
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {formatDate(previewItem.publishedAt)}
+              </span>
+            )}
+            {previewItem?.category && (
+              <Badge variant="secondary" className="ml-auto">{previewItem.category}</Badge>
+            )}
+          </div>
+
+          {previewItem?.excerpt && (
+            <p className="text-base mb-3">{previewItem.excerpt}</p>
+          )}
+
+          {previewItem?.content ? (
+            <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+              {previewItem.content}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No content.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
