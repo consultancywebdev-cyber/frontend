@@ -29,7 +29,7 @@ export default function Reviews() {
   // Radix Switch is not a native input → control it
   const [isActive, setIsActive] = useState(true);
 
-  // READ
+  // READ (admin list; requires session)
   const {
     data: reviews = [],
     isLoading,

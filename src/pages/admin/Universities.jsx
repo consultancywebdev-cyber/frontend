@@ -1,3 +1,4 @@
+// frontend/src/pages/admin/Universities.jsx
 import { useState } from "react";
 import { AdminLayout } from "../../admin/AdminLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +16,14 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
-const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
+const normalize = (x) => {
+  if (!x) return x;
+  const id = getId(x);
+  // ensure frontend-friendly names always exist
+  const logoUrl = x.logoUrl || x.imageUrl || "";
+  const websiteUrl = x.websiteUrl || x.website || "";
+  return { ...x, id, logoUrl, websiteUrl };
+};
 
 export default function Universities() {
   const { toast } = useToast();
@@ -107,15 +115,13 @@ export default function Universities() {
     const form = e.currentTarget;
     const fd = new FormData(form);
 
-    const data = {
-      name: (fd.get("name") || "").toString(),
-      country: (fd.get("country") || "").toString(),
-      description: (fd.get("description") || "").toString(),
-      logoUrl: (fd.get("logoUrl") || "").toString(),
-      websiteUrl: (fd.get("websiteUrl") || "").toString(),
-    };
+    const name = (fd.get("name") || "").toString().trim();
+    const country = (fd.get("country") || "").toString().trim();
+    const description = (fd.get("description") || "").toString();
+    const logoUrl = (fd.get("logoUrl") || "").toString().trim();
+    const websiteUrl = (fd.get("websiteUrl") || "").toString().trim();
 
-    if (!data.name || !data.country) {
+    if (!name || !country) {
       toast({
         title: "Missing fields",
         description: "University name and country are required.",
@@ -124,11 +130,22 @@ export default function Universities() {
       return;
     }
 
+    // send both new and legacy keys so any backend version is happy
+    const payload = {
+      name,
+      country,
+      description,
+      logoUrl,
+      websiteUrl,
+      imageUrl: logoUrl, // legacy mirror
+      website: websiteUrl, // legacy mirror
+    };
+
     const id = getId(editingItem);
     if (id) {
-      updateItem.mutate({ id, data });
+      updateItem.mutate({ id, data: payload });
     } else {
-      createItem.mutate(data);
+      createItem.mutate(payload);
     }
   };
 
@@ -161,7 +178,13 @@ export default function Universities() {
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingItem(null)} data-testid="button-add-university">
+              <Button
+                onClick={() => {
+                  setEditingItem(null);
+                  setIsDialogOpen(true);
+                }}
+                data-testid="button-add-university"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add University
               </Button>
@@ -235,7 +258,7 @@ export default function Universities() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditingItem(normalize(item));
+                        setEditingItem(item);
                         setIsDialogOpen(true);
                       }}
                     >

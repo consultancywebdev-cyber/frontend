@@ -272,7 +272,8 @@ export default function Classes() {
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          if (!id) {
+                          const safeId = getId(item);
+                          if (!safeId) {
                             toast({
                               title: "Missing ID",
                               description: "This class does not have an id field.",
@@ -280,7 +281,7 @@ export default function Classes() {
                             });
                             return;
                           }
-                          deleteItem.mutate(id);
+                          deleteItem.mutate(safeId);
                         }}
                       >
                         <Trash2 className="w-4 h-4" />

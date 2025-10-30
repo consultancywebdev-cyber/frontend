@@ -33,10 +33,9 @@ export default function Blogs() {
 
   const [editingItem, setEditingItem] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // Switch is NOT a native input → must be controlled state
   const [isPublished, setIsPublished] = useState(false);
 
-  // READ
+  // READ (admins will see all because server inspects session)
   const {
     data: blogs = [],
     isLoading,
@@ -150,7 +149,7 @@ export default function Blogs() {
       category: (fd.get("category") || "").toString(),
       author: (fd.get("author") || "").toString(),
       isPublished: !!isPublished,
-      publishedAt: isPublished ? new Date() : null, // will serialize to ISO
+      publishedAt: isPublished ? new Date() : null,
     };
 
     const id = getId(editingItem);

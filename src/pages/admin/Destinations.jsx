@@ -1,3 +1,4 @@
+// frontend/src/pages/admin/Destinations.jsx
 import { useState } from "react";
 import { AdminLayout } from "../../admin/AdminLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

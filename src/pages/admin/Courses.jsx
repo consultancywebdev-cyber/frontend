@@ -1,3 +1,4 @@
+// frontend/src/pages/admin/Courses.jsx
 import { useState } from "react";
 import { AdminLayout } from "../../admin/AdminLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,7 +17,13 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // Helpers
 const getId = (x) => x?.id ?? x?._id ?? null;
-const normalize = (x) => (x ? { ...x, id: getId(x) } : x);
+const normalize = (x) => {
+  if (!x) return x;
+  const id = getId(x);
+  // Always expose "category" to the UI even if backend returns "level"
+  const category = x.category || x.level || "";
+  return { ...x, id, category };
+};
 
 export default function Courses() {
   const { toast } = useToast();
@@ -43,7 +50,9 @@ export default function Courses() {
   // CREATE
   const createItem = useMutation({
     mutationFn: async (data) => {
-      const res = await apiRequest("POST", `${API_BASE}/api/courses`, data);
+      // send both category + level so any backend variant works
+      const payload = { ...data, level: data.category };
+      const res = await apiRequest("POST", `${API_BASE}/api/courses`, payload);
       return res.json();
     },
     onSuccess: () => {
@@ -65,7 +74,9 @@ export default function Courses() {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!id) throw new Error("Missing course id");
-      const res = await apiRequest("PUT", `${API_BASE}/api/courses/${id}`, data);
+      // send both category + level for compatibility
+      const payload = { ...data, level: data.category };
+      const res = await apiRequest("PUT", `${API_BASE}/api/courses/${id}`, payload);
       return res.json();
     },
     onSuccess: () => {
@@ -109,11 +120,11 @@ export default function Courses() {
     const fd = new FormData(form);
 
     const data = {
-      name: (fd.get("name") || "").toString(),
-      category: (fd.get("category") || "").toString(),
+      name: (fd.get("name") || "").toString().trim(),
+      category: (fd.get("category") || "").toString().trim(),   // UI field
       duration: (fd.get("duration") || "").toString(),
       description: (fd.get("description") || "").toString(),
-      imageUrl: (fd.get("imageUrl") || "").toString(),
+      imageUrl: (fd.get("imageUrl") || "").toString().trim(),
     };
 
     if (!data.name || !data.category) {
@@ -162,7 +173,13 @@ export default function Courses() {
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingItem(null)} data-testid="button-add-course">
+              <Button
+                onClick={() => {
+                  setEditingItem(null);
+                  setIsDialogOpen(true);
+                }}
+                data-testid="button-add-course"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Course
               </Button>
@@ -233,7 +250,9 @@ export default function Courses() {
                 )}
                 <div className="p-4">
                   <h3 className="font-semibold text-lg mb-2">{item.name}</h3>
-                  <p className="text-xs text-primary mb-2">{item.category}</p>
+                  <p className="text-xs text-primary mb-2">
+                    {item.category /* normalized above */}
+                  </p>
                   {item.description && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                       {item.description}
