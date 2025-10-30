@@ -1,3 +1,4 @@
+// src/pages/admin/AdminLogin.jsx
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Card } from "../../ui/card";
@@ -6,9 +7,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { useToast } from "../../hooks/use-toast";
 import { Lock } from "lucide-react";
-
-// ✅ Use API base from env so it works on Render/Netlify too
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import { apiRequest } from "../../lib/queryClient"; // ✅ centralized API base & credentials
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -22,23 +21,19 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE},/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",                 // ✅ receive/set session cookie
-        body: JSON.stringify({ username, password }),
-      });
+      // ✅ Uses apiRequest so it respects VITE_API_URL / VITE_API_BASE_URL and sends credentials
+      const res = await apiRequest("POST", "/api/auth/login", { username, password });
 
-      // Try to read server message (if any)
+      // Try to read a server-provided message (optional)
       let serverMsg = "";
       try {
-        const data = await response.clone().json();
+        const data = await res.clone().json();
         serverMsg = data?.message || "";
       } catch {
-        serverMsg = (await response.text()).slice(0, 200);
+        // ignore parse errors; not all servers return JSON
       }
 
-      if (response.ok) {
+      if (res.ok) {
         toast({
           title: "Success",
           description: serverMsg || "Logged in successfully",
@@ -70,9 +65,7 @@ export default function AdminLogin() {
             <Lock className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Admin Login</h1>
-          <p className="text-sm text-muted-foreground">
-            Everest Worldwide Consultancy
-          </p>
+          <p className="text-sm text-muted-foreground">Everest Worldwide Consultancy</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
