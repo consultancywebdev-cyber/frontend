@@ -7,7 +7,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { useToast } from "../../hooks/use-toast";
 import { Lock } from "lucide-react";
-import { apiRequest } from "../../lib/queryClient"; // ✅ centralized API base & credentials
+import { apiRequest } from "../../lib/queryClient"; // uses VITE_API_BASE_URL and sends credentials
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -18,26 +18,28 @@ export default function AdminLogin() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
     setIsLoading(true);
 
     try {
-      // ✅ Uses apiRequest so it respects VITE_API_URL / VITE_API_BASE_URL and sends credentials
-      const res = await apiRequest("POST", "/api/auth/login", { username, password });
+      const payload = {
+        username: username.trim(),
+        password: password, // don't trim passwords
+      };
 
-      // Try to read a server-provided message (optional)
+      const res = await apiRequest("POST", "/api/auth/login", payload);
+
+      // Try to read any message from server (optional)
       let serverMsg = "";
       try {
         const data = await res.clone().json();
         serverMsg = data?.message || "";
       } catch {
-        // ignore parse errors; not all servers return JSON
+        // backend might not return JSON – ignore
       }
 
       if (res.ok) {
-        toast({
-          title: "Success",
-          description: serverMsg || "Logged in successfully",
-        });
+        toast({ title: "Success", description: serverMsg || "Logged in successfully" });
         setLocation("/admin/dashboard");
       } else {
         toast({
@@ -46,7 +48,7 @@ export default function AdminLogin() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error",
         description: "Failed to login. Please check your connection and try again.",
