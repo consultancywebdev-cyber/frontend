@@ -6,9 +6,18 @@ import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../ui/dialog";
+import { useMemo, useState } from "react";
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
-// Helper: fetch wrapper
+
+// ---- Helper: Fetch Wrapper ----
 async function fetchJSON(path) {
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
@@ -19,24 +28,71 @@ async function fetchJSON(path) {
   return res.json();
 }
 
+// ---- Safe accessors ----
+const getCourseId = (course) => course?.id || course?._id || course?.slug;
+const toLower = (v) => (v || "").toLowerCase();
+
 export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: courses = [], isLoading } = useQuery({
+  // List fetch
+  const {
+    data: courses = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: [API_BASE, "/api/courses"],
     queryFn: () => fetchJSON("/api/courses"),
   });
 
-  const activeCourses = (courses || []).filter(
-    (course) => course && course.isActive
+  const activeCourses = useMemo(
+    () => (Array.isArray(courses) ? courses.filter((c) => c?.isActive) : []),
+    [courses]
   );
 
-  const q = (searchQuery || "").toLowerCase();
-  const filteredCourses = activeCourses.filter((course) => {
-    const name = (course.name || "").toLowerCase();
-    const category = (course.category || "").toLowerCase();
-    return name.includes(q) || category.includes(q);
+  const q = toLower(searchQuery);
+  const filteredCourses = useMemo(() => {
+    return activeCourses.filter((course) => {
+      const name = toLower(course?.name);
+      const category = toLower(course?.category);
+      return name.includes(q) || category.includes(q);
+    });
+  }, [activeCourses, q]);
+
+  // Detail fetch (when a course is selected)
+  const {
+    data: courseDetail,
+    isLoading: isDetailLoading,
+    error: detailError,
+  } = useQuery({
+    queryKey: [API_BASE, "/api/courses", selectedId],
+    queryFn: () => fetchJSON(`/api/courses/${selectedId}`),
+    enabled: !!selectedId,
+    // If your backend returns 404 for unknown, keep stale data off
+    staleTime: 0,
   });
+
+  // Fallback detail (if API has no detail endpoint, use from list)
+  const fallbackFromList = useMemo(
+    () => activeCourses.find((c) => getCourseId(c) === selectedId),
+    [activeCourses, selectedId]
+  );
+  const detail = courseDetail || fallbackFromList || null;
+
+  const handleOpenDetail = (course) => {
+    const id = getCourseId(course);
+    if (!id) return;
+    setSelectedId(id);
+    setIsDialogOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsDialogOpen(false);
+    // Small timeout so closing animation doesn’t flicker while unsetting id
+    setTimeout(() => setSelectedId(null), 200);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,6 +122,12 @@ export default function CoursesPage() {
                   data-testid="input-search-courses"
                 />
               </div>
+
+              {error ? (
+                <p className="mt-4 text-sm text-destructive">
+                  Failed to load courses: {String(error.message || error)}
+                </p>
+              ) : null}
             </div>
           </div>
         </section>
@@ -96,15 +158,13 @@ export default function CoursesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {filteredCourses.map((course, idx) => {
                   const key =
-                    course.id ||
-                    course._id ||
-                    course.slug ||
-                    `${course.name || "course"}-${idx}`;
-                  const img = course.imageUrl || "";
-                  const name = course.name || "Course";
-                  const category = course.category || "";
-                  const duration = course.duration || "";
-                  const description = course.description || "";
+                    getCourseId(course) ||
+                    `${course?.name || "course"}-${idx}`;
+                  const img = course?.imageUrl || "";
+                  const name = course?.name || "Course";
+                  const category = course?.category || "";
+                  const duration = course?.duration || "";
+                  const description = course?.description || "";
 
                   return (
                     <Card
@@ -119,6 +179,7 @@ export default function CoursesPage() {
                             alt={name}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                             data-testid={`img-course-${key}`}
+                            loading="lazy"
                           />
                         </div>
                       ) : (
@@ -149,6 +210,7 @@ export default function CoursesPage() {
                         <h3
                           className="text-lg font-semibold text-foreground mb-3 line-clamp-2"
                           data-testid={`text-course-name-${key}`}
+                          title={name}
                         >
                           {name}
                         </h3>
@@ -164,6 +226,7 @@ export default function CoursesPage() {
                           size="sm"
                           className="w-full"
                           data-testid={`button-learn-more-${key}`}
+                          onClick={() => handleOpenDetail(course)}
                         >
                           Learn More
                         </Button>
@@ -176,6 +239,131 @@ export default function CoursesPage() {
           </div>
         </section>
       </main>
+
+      {/* Detail Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => (open ? null : handleClose())}>
+        <DialogContent
+          className="max-w-3xl p-0 overflow-hidden"
+          data-testid="dialog-course-detail"
+        >
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>
+              {detail?.name || "Course Details"}
+            </DialogTitle>
+            {!!detail?.category && (
+              <DialogDescription className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {detail.category}
+                </Badge>
+                {!!detail?.duration && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    {detail.duration}
+                  </span>
+                )}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          {/* Image */}
+          {detail?.imageUrl ? (
+            <div className="h-56 w-full overflow-hidden">
+              <img
+                src={detail.imageUrl}
+                alt={detail?.name || "Course Image"}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          ) : null}
+
+          {/* Body */}
+          <div className="px-6 py-5 space-y-4">
+            {/* Description */}
+            {isDetailLoading ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-4 bg-muted rounded w-2/3" />
+                <div className="h-4 bg-muted rounded w-5/6" />
+                <div className="h-4 bg-muted rounded w-3/4" />
+              </div>
+            ) : detailError ? (
+              <p className="text-sm text-destructive">
+                Failed to load full details. Showing available information.
+              </p>
+            ) : null}
+
+            {detail?.description && (
+              <section>
+                <h4 className="text-sm font-semibold mb-2">About this course</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {detail.description}
+                </p>
+              </section>
+            )}
+
+            {/* Optional fields if your API provides them */}
+            {detail?.syllabus?.length ? (
+              <section>
+                <h4 className="text-sm font-semibold mb-2">Syllabus</h4>
+                <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                  {detail.syllabus.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {detail?.requirements?.length ? (
+              <section>
+                <h4 className="text-sm font-semibold mb-2">Requirements</h4>
+                <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                  {detail.requirements.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {detail?.fee ? (
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Fee</p>
+                  <p className="text-sm font-medium">{detail.fee}</p>
+                </div>
+              ) : null}
+              {detail?.startDate ? (
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Start Date</p>
+                  <p className="text-sm font-medium">
+                    {new Date(detail.startDate).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : null}
+              {detail?.applicationDeadline ? (
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Application Deadline</p>
+                  <p className="text-sm font-medium">
+                    {new Date(detail.applicationDeadline).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            {/* CTA row (customize as you like) */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={handleClose}>
+                Close
+              </Button>
+              {detail?.applyUrl ? (
+                <a href={detail.applyUrl} target="_blank" rel="noreferrer">
+                  <Button>Apply Now</Button>
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
