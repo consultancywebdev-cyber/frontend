@@ -2,7 +2,7 @@
 import Navbar from "../Navbar";
 import Footer from "../Footer";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, User, ArrowRight, Search } from "lucide-react";
+import { Calendar, User, ArrowRight, Search, X } from "lucide-react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
@@ -12,8 +12,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "../ui/dialog";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -39,7 +40,6 @@ function formatDate(value) {
   }).format(d); // e.g., Oct 29, 2025
 }
 
-// ---- Main Component ----
 export default function BlogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -77,10 +77,16 @@ export default function BlogsPage() {
     [publishedBlogs, q]
   );
 
-  const openPreview = (item) => {
+  const openPreview = useCallback((item) => {
     setPreviewItem(item);
     setIsPreviewOpen(true);
-  };
+  }, []);
+
+  // Ensure we clear the selected item when closing (helps on iOS modal re-opens)
+  const handleOpenChange = useCallback((open) => {
+    setIsPreviewOpen(open);
+    if (!open) setPreviewItem(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,6 +165,7 @@ export default function BlogsPage() {
                             src={blog.imageUrl}
                             alt={blog.title || "Blog image"}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                            loading="lazy"
                           />
                         </div>
                       ) : (
@@ -206,7 +213,7 @@ export default function BlogsPage() {
                           <Button
                             variant="link"
                             className="p-0 h-auto text-sm text-primary flex items-center gap-1"
-                            onClick={() => openPreview(blog)} // open overlay instead of routing
+                            onClick={() => openPreview(blog)}
                           >
                             Read More
                             <ArrowRight className="w-4 h-4" />
@@ -222,50 +229,72 @@ export default function BlogsPage() {
         </section>
       </main>
 
-      {/* Preview Overlay */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{previewItem?.title || "Blog"}</DialogTitle>
-          </DialogHeader>
-
-          {previewItem?.imageUrl && (
-            <img
-              src={previewItem.imageUrl}
-              alt={previewItem.title}
-              className="w-full h-60 object-cover rounded-md mb-4"
-            />
-          )}
-
-          <div className="text-sm text-muted-foreground mb-4 flex items-center gap-4">
-            {previewItem?.author && (
-              <span className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                {previewItem.author}
-              </span>
-            )}
-            {previewItem?.publishedAt && (
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {formatDate(previewItem.publishedAt)}
-              </span>
-            )}
-            {previewItem?.category && (
-              <Badge variant="secondary" className="ml-auto">{previewItem.category}</Badge>
-            )}
+      {/* Preview Overlay (mobile-optimized) */}
+      <Dialog open={isPreviewOpen} onOpenChange={handleOpenChange}>
+        {/* 
+          On mobile, make the dialog nearly full-width and allow its BODY to scroll.
+          On desktop, constrain to a nicer width.
+        */}
+        <DialogContent className="w-[95vw] sm:w-auto sm:max-w-3xl p-0">
+          {/* Sticky header inside the dialog for better mobile UX */}
+          <div className="sticky top-0 z-10 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <DialogHeader className="px-5 pt-4 pb-3">
+              <DialogTitle className="pr-8">
+                {previewItem?.title || "Blog"}
+              </DialogTitle>
+              <DialogClose asChild>
+                <button
+                  className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground hover:text-foreground focus:outline-none"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </DialogClose>
+            </DialogHeader>
           </div>
 
-          {previewItem?.excerpt && (
-            <p className="text-base mb-3">{previewItem.excerpt}</p>
-          )}
+          {/* Scrollable content area */}
+          <div className="px-5 pb-5 overflow-y-auto max-h-[80vh] sm:max-h-[85vh]">
+            {previewItem?.imageUrl && (
+              <img
+                src={previewItem.imageUrl}
+                alt={previewItem.title}
+                className="w-full h-60 object-cover rounded-md mb-4"
+              />
+            )}
 
-          {previewItem?.content ? (
-            <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-              {previewItem.content}
+            <div className="text-sm text-muted-foreground mb-4 flex items-center gap-4 flex-wrap">
+              {previewItem?.author && (
+                <span className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  {previewItem.author}
+                </span>
+              )}
+              {previewItem?.publishedAt && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {formatDate(previewItem.publishedAt)}
+                </span>
+              )}
+              {previewItem?.category && (
+                <Badge variant="secondary" className="ml-auto">
+                  {previewItem.category}
+                </Badge>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No content.</p>
-          )}
+
+            {previewItem?.excerpt && (
+              <p className="text-base mb-3">{previewItem.excerpt}</p>
+            )}
+
+            {previewItem?.content ? (
+              <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                {previewItem.content}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No content.</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
