@@ -5,7 +5,9 @@ import { ExternalLink, Globe, Search } from "lucide-react";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { useState } from "react";
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // Helper: fetch wrapper
 async function fetchJSON(path) {
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
@@ -16,6 +18,9 @@ async function fetchJSON(path) {
   }
   return res.json();
 }
+
+// Small helper to get a stable key/id
+const getUniId = (u) => u?.id || u?._id || u?.slug;
 
 export default function UniversitiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +80,7 @@ export default function UniversitiesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Card key={i} className="p-6 animate-pulse">
-                    <div className="h-20 bg-muted rounded-md mb-4" />
+                    <div className="h-24 bg-muted rounded-xl mb-4" />
                     <div className="h-6 bg-muted rounded-md mb-2" />
                     <div className="h-4 bg-muted rounded-md" />
                   </Card>
@@ -94,9 +99,7 @@ export default function UniversitiesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {filteredUniversities.map((university, idx) => {
                   const key =
-                    university.id ||
-                    university._id ||
-                    university.slug ||
+                    getUniId(university) ||
                     `${university.name || "uni"}-${idx}`;
                   const logoUrl = university.logoUrl || "";
                   const name = university.name || "University";
@@ -110,23 +113,51 @@ export default function UniversitiesPage() {
                       className="p-6 hover-elevate active-elevate-2 transition-all duration-300 hover:-translate-y-1"
                       data-testid={`card-university-${key}`}
                     >
-                      {logoUrl ? (
-                        <div className="flex items-center justify-center h-20 mb-4">
-                          <img
-                            src={logoUrl}
-                            alt={name}
-                            className="max-h-full max-w-full object-contain"
-                          />
+                      {/* Polished logo block */}
+                      <div className="mb-4">
+                        <div
+                          className={[
+                            // Aspect & layout
+                            "relative w-full aspect-[5/1] sm:aspect-[4/1] lg:aspect-[5/1]",
+                            // Container styling
+                            "grid place-items-center rounded-xl border bg-gradient-to-br from-muted/70 to-background",
+                            "ring-1 ring-border/60 shadow-sm",
+                            // Spacing
+                            "p-3 sm:p-4",
+                            // Hover micro-interaction
+                            "transition-transform duration-300 hover:scale-[1.01]",
+                          ].join(" ")}
+                        >
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={name}
+                              title={name}
+                              loading="lazy"
+                              className={[
+                                // Keep inside box nicely
+                                "max-h-full max-w-full object-contain",
+                                // Improve legibility for transparent PNG/SVG over light bg
+                                "drop-shadow-sm",
+                                // Subtle blend that helps dark logos on light bg without harming colored ones
+                                "mix-blend-multiply dark:mix-blend-normal",
+                                // Prevent pixelation on HiDPI if big logos scale down
+                                "[image-rendering:auto]",
+                              ].join(" ")}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Globe className="w-6 h-6" />
+                              <span className="text-sm">Logo unavailable</span>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-20 mb-4 bg-primary/5 rounded-md">
-                          <Globe className="w-10 h-10 text-primary" />
-                        </div>
-                      )}
+                      </div>
 
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                      <h3 className="text-lg font-semibold text-foreground mb-1">
                         {name}
                       </h3>
+
                       {country && (
                         <p className="text-sm text-muted-foreground mb-4">
                           {country}
