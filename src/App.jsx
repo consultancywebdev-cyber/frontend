@@ -100,6 +100,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router />
+ 
       <Toaster />
     </QueryClientProvider>
   );
