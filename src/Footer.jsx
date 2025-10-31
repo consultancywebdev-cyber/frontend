@@ -5,8 +5,9 @@ import { SiTiktok } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
+const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 
-// Helper: fetch settings data
+// Fetch app settings
 async function fetchJSON(path) {
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const res = await fetch(url, { credentials: "include" });
@@ -26,18 +27,17 @@ export default function Footer() {
 
   const fbRef = useRef(null);
 
-  // Load Facebook SDK once
+  // Load FB SDK (with env APP ID)
   useEffect(() => {
-    if (window.FB) return; // already loaded
+    if (window.FB) return;
     const script = document.createElement("script");
-    script.src =
-      "https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v24.0&appId=1172993544730705";
+    script.src = `https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v24.0&appId=${FB_APP_ID}`;
     script.async = true;
     script.defer = true;
     document.body.appendChild(script);
   }, []);
 
-  // Re-parse FB widget when URL available
+  // Re-render FB widget when settings load
   useEffect(() => {
     if (window.FB && fbRef.current) {
       window.FB.XFBML.parse(fbRef.current);
@@ -52,69 +52,44 @@ export default function Footer() {
 
   return (
     <footer className="bg-card border-t mt-20">
-      {/* Top section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* Brand / Summary */}
+
+          {/* Company Info */}
           <div className="space-y-4">
             {settings?.logoUrl && (
-              <img
-                src={settings.logoUrl}
-                alt={settings?.companyName || "Logo"}
-                className="h-12 w-auto object-contain"
-              />
+              <img src={settings.logoUrl} alt="Logo" className="h-12 w-auto object-contain" />
             )}
+
             <h3 className="text-xl font-semibold text-foreground">
               {settings?.companyName || "Everest Worldwide Consultancy Pvt. Ltd."}
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
+
+            <p className="text-sm text-muted-foreground leading-relaxed">
               {settings?.footerDescription ||
-                "Your trusted partner for international education. We provide expert guidance to help you achieve your dreams of studying abroad."}
+                "Your trusted partner for international education. We guide you to achieve your global study dreams."}
             </p>
 
-            {/* Social row (compact) */}
+            {/* Social Icons */}
             <div className="flex gap-3 pt-2">
               {settings?.facebookUrl && (
-                <a
-                  aria-label="Facebook"
-                  href={settings.facebookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-muted-foreground hover:text-primary transition"
-                >
+                <a href={settings.facebookUrl} target="_blank" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:text-primary transition">
                   <Facebook className="w-5 h-5" />
                 </a>
               )}
               {settings?.instagramUrl && (
-                <a
-                  aria-label="Instagram"
-                  href={settings.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-muted-foreground hover:text-primary transition"
-                >
+                <a href={settings.instagramUrl} target="_blank" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:text-primary transition">
                   <Instagram className="w-5 h-5" />
                 </a>
               )}
               {settings?.tiktokUrl && (
-                <a
-                  aria-label="TikTok"
-                  href={settings.tiktokUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-muted-foreground hover:text-primary transition"
-                >
+                <a href={settings.tiktokUrl} target="_blank" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:text-primary transition">
                   <SiTiktok className="w-4 h-4" />
                 </a>
               )}
               {settings?.whatsappUrl && (
-                <a
-                  aria-label="WhatsApp"
-                  href={settings.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-muted-foreground hover:text-primary transition"
-                >
+                <a href={settings.whatsappUrl} target="_blank" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:text-primary transition">
                   <MessageCircle className="w-5 h-5" />
                 </a>
               )}
@@ -123,14 +98,13 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-base font-semibold text-foreground mb-4">Quick Links</h4>
+            <h4 className="text-base font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              {quickLinks.map((link) => (
+              {quickLinks.map(link => (
                 <li key={link.path}>
                   <Link href={link.path}>
-                    <a className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2">
-                      {/* small bullet decoration */}
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70"></span>
+                    <a className="text-sm text-muted-foreground hover:text-primary transition inline-flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 bg-primary/70 rounded-full"></span>
                       {link.name}
                     </a>
                   </Link>
@@ -141,66 +115,47 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="text-base font-semibold text-foreground mb-4">Contact</h4>
-            <ul className="space-y-3">
+            <h4 className="text-base font-semibold mb-4">Contact</h4>
+            <ul className="space-y-3 text-sm">
               {settings?.email && (
-                <li className="flex items-start gap-3">
-                  <Mail className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                  <a
-                    href={`mailto:${settings.email}`}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {settings.email}
-                  </a>
+                <li className="flex gap-2">
+                  <Mail className="w-4 h-4 text-primary mt-0.5" />
+                  <a href={`mailto:${settings.email}`} className="hover:text-primary">{settings.email}</a>
                 </li>
               )}
               {settings?.mobile && (
-                <li className="flex items-start gap-3">
-                  <Phone className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                  <a
-                    href={`tel:${settings.mobile}`}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {settings.mobile}
-                  </a>
+                <li className="flex gap-2">
+                  <Phone className="w-4 h-4 text-primary mt-0.5" />
+                  <a href={`tel:${settings.mobile}`} className="hover:text-primary">{settings.mobile}</a>
                 </li>
               )}
               {settings?.telephone && (
-                <li className="flex items-start gap-3">
-                  <Phone className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                  <a
-                    href={`tel:${settings.telephone}`}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {settings.telephone}
-                  </a>
+                <li className="flex gap-2">
+                  <Phone className="w-4 h-4 text-primary mt-0.5" />
+                  <a href={`tel:${settings.telephone}`} className="hover:text-primary">{settings.telephone}</a>
                 </li>
               )}
               {settings?.address && (
-                <li className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">{settings.address}</p>
+                <li className="flex gap-2">
+                  <MapPin className="w-4 h-4 text-primary mt-0.5" />
+                  <span>{settings.address}</span>
                 </li>
               )}
             </ul>
           </div>
 
-          {/* Facebook Live Feed (responsive container) */}
-          <div className="md:block">
-            <h4 className="text-base font-semibold text-foreground mb-4">Latest from Facebook</h4>
+          {/* Facebook Feed */}
+          <div>
+            <h4 className="text-base font-semibold mb-4">Latest from Facebook</h4>
 
-            {/* On very small screens we hide the embed to avoid layout jump */}
-            <div
-              ref={fbRef}
-              className="hidden md:flex justify-center md:justify-start"
-            >
+            <div ref={fbRef} className="flex justify-center md:justify-start">
               {settings?.facebookUrl && (
                 <div
-                  className="fb-page w-full max-w-sm lg:max-w-xs"
+                  className="fb-page w-full max-w-[380px]"
                   data-href={settings.facebookUrl}
                   data-tabs="timeline"
-                  data-width=""
-                  data-height="420"
+                  data-width="380"
+                  data-height="480"
                   data-small-header="false"
                   data-adapt-container-width="true"
                   data-hide-cover="false"
@@ -208,48 +163,16 @@ export default function Footer() {
                 ></div>
               )}
             </div>
-
-            {/* Fallback link on mobile (where we hide the heavy iframe) */}
-            {settings?.facebookUrl && (
-              <a
-                href={settings.facebookUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="md:hidden inline-flex items-center gap-2 text-sm text-primary mt-2"
-              >
-                <Facebook className="w-4 h-4" />
-                View our latest updates
-              </a>
-            )}
           </div>
+
         </div>
 
-        {/* Divider */}
-        <div className="mt-10 border-t" />
+        <div className="mt-10 border-t"></div>
 
-        {/* Bottom bar */}
-        <div className="py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground text-center md:text-left">
-            © {new Date().getFullYear()} {settings?.companyName || "Everest Worldwide Consultancy Pvt. Ltd."} · All rights reserved.
-          </p>
-
-          {/* Optional policy links if you add them to settings later */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            {settings?.termsUrl && (
-              <a href={settings.termsUrl} className="hover:text-primary transition-colors">
-                Terms
-              </a>
-            )}
-            {settings?.privacyUrl && (
-              <>
-                <span className="opacity-40">•</span>
-                <a href={settings.privacyUrl} className="hover:text-primary transition-colors">
-                  Privacy
-                </a>
-              </>
-            )}
-          </div>
+        <div className="py-6 text-center text-sm text-muted-foreground">
+          © {new Date().getFullYear()} {settings?.companyName || "Everest Worldwide Consultancy Pvt. Ltd."} — All Rights Reserved.
         </div>
+
       </div>
     </footer>
   );
